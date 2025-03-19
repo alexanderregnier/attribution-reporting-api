@@ -1046,6 +1046,10 @@ An attribution report is a [=struct=] with the following items:
 :: A [=suitable origin=].
 : <dfn>report time</dfn>
 :: A [=moment=].
+: <dfn>source time</dfn>
+:: A [=moment=].
+: <dfn>trigger time</dfn>
+:: A [=moment=].
 : <dfn>external ID</dfn>
 :: A UUID formatted as a [=string=].
 : <dfn>internal ID</dfn>
@@ -1078,8 +1082,6 @@ An event-level report is an [=attribution report=] with the following additional
 :: A number between 0 and 1 (both inclusive).
 : <dfn>trigger priority</dfn>
 :: A 64-bit integer.
-: <dfn>trigger time</dfn>
-:: A [=moment=].
 : <dfn>source ID</dfn>
 :: A [=string=].
 : <dfn>attribution destinations</dfn>
@@ -1118,8 +1120,6 @@ An <dfn>aggregatable report</dfn> is an [=attribution report=] with the followin
 An <dfn>aggregatable attribution report</dfn> is an [=aggregatable report=] with the following additional items:
 
 <dl dfn-for="aggregatable attribution report">
-: <dfn>source time</dfn>
-:: A [=moment=].
 : <dfn>source registration time configuration</dfn>
 :: An [=aggregatable source registration time configuration=].
 : <dfn>is null report</dfn> (default false)
@@ -1489,6 +1489,10 @@ double between 0 and 1 (both inclusive) that controls the randomized number of n
 generated for an [=attribution trigger=] whose [=attribution trigger/aggregatable source registration time configuration=]
 is "<code>[=aggregatable source registration time configuration/include=]</code>". If [=automation local testing mode=] is true,
 this is 0.
+
+<dfn>Max attribution report time-to-live</dfn> is a positive [=duration=] that
+controls the maximum amount of time an attribution report can exist before
+expiring without being sent.
 
 <dfn>Max event-level reports per attribution destination</dfn> is a positive integer that
 controls how many [=event-level reports=] can be in the
@@ -2305,6 +2309,8 @@ an [=aggregation coordinator=] |aggregationCoordinator|, and a [=moment=] |now|:
     : [=aggregatable debug report/effective attribution destination=]
     :: |effectiveDestination|
     : [=aggregatable debug report/report time=]
+    :: |now|
+    : [=aggregatable debug report/trigger time=]
     :: |now|
     : [=aggregatable debug report/external ID=]
     :: The result of [=generating a random UUID=]
@@ -4507,6 +4513,8 @@ a 64-bit integer priority |priority|, and a [=trigger spec map=] [=map/entry=]
     :: |source|'s [=attribution source/attribution destinations=].
     : [=event-level report/report time=]
     :: |reportTime|
+    : [=event-level report/source time=]
+    :: |source|'s [=attribution source/source time=].
     : [=event-level report/trigger priority=]
     :: |priority|.
     : [=event-level report/trigger time=]
@@ -4543,6 +4551,8 @@ an [=attribution trigger=] |trigger|:
     :: |source|'s [=attribution source/source time=].
     : [=aggregatable attribution report/report time=]
     :: |reportTime|.
+    : [=aggregatable attribution report/trigger time=]
+    :: |trigger|'s [=attribution trigger/trigger time=].
     : [=aggregatable attribution report/external ID=]
     :: The result of [=generating a random UUID=].
     : [=aggregatable attribution report/internal ID=]
@@ -4578,6 +4588,8 @@ To <dfn>obtain a null attribution report</dfn> given an [=attribution trigger=] 
     :: |sourceTime|
     : [=aggregatable attribution report/report time=]
     :: |reportTime|
+    : [=aggregatable attribution report/trigger time=]
+    :: |trigger|'s [=attribution trigger/trigger time=].
     : [=aggregatable attribution report/external ID=]
     :: The result of [=generating a random UUID=]
     : [=aggregatable attribution report/internal ID=]
@@ -4676,7 +4688,11 @@ To <dfn>queue reports for delivery</dfn> given a [=set=] of
          forms of interruption, including shutdown, the user agent may need to
          persist reports that are in the process of being sent in some other
          storage.
-    1. [=list/Append=] |report| to |reportsToSend|.
+    1. Let |startTime| be the lesser of |report|'s
+        [=attribution report/source time=] and [=attribution report/trigger time=].
+    1. If [=current wall time=] - |startTime| is less than or equal to
+        [=max attribution report time-to-live=], [=list/append=] |report| to
+        |reportsToSend|.
 1. [=shuffle a list|Shuffle=] |reportsToSend|.
 
     Note: Shuffling ensures [=event-level reports=] for the same source with the same [=attribution report/report time=] are never sent
