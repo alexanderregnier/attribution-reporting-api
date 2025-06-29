@@ -5,9 +5,9 @@ import collections
 from datetime import timedelta
 import json
 import numpy
-import random
 from typing import Any, List, Hashable, Tuple, Dict, TypedDict, TypeVar, Generator, Iterable
 import sys
+import secrets
 
 # This file provides functionality to correct noisy data coming from the event-level reports in the Attribution Reporting API.
 #
@@ -316,7 +316,7 @@ def adjust_to_match_distribution(values: List[T],
 
     # Otherwise, pick from among the elements with enough mass for subtraction.
     if len(large_elts) > 0:
-      elt = random.choices(list(large_elts.keys()), large_elts.values())[0]
+      elt = secrets.SystemRandom().choices(list(large_elts.keys()), large_elts.values())[0]
       decrement_large_elt(elt)
       return elt
 
@@ -324,8 +324,8 @@ def adjust_to_match_distribution(values: List[T],
     # mass defaulting to a default value / null value. This also introduces
     # small bias towards the null value bucket.
     total_mass_remaining = sum(small_elts.values())
-    if random.random() <= total_mass_remaining:
-      return random.choices(list(small_elts.keys()), small_elts.values())[0]
+    if secrets.SystemRandom().random() <= total_mass_remaining:
+      return secrets.SystemRandom().choices(list(small_elts.keys()), small_elts.values())[0]
     return default_value
 
   return [handle_value(v) for v in values]
@@ -337,7 +337,7 @@ def generate_corrected_event_level(joined: JoinedList, params: ParamConfig) -> J
   # as we go. Shuffling first avoids favoring some values over others.
   # Note: ideally adjust_to_match_distribution would shuffle, but it becomes
   # more difficult to associate the adjustments with the input JSON.
-  random.shuffle(joined)
+  secrets.SystemRandom().shuffle(joined)
   aggregates = get_raw_corrected_map(joined, params)
   outputs = [OutputEnumeration.create_from_data(j) for j in joined]
   adjusted_values = adjust_to_match_distribution(
